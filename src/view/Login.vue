@@ -80,6 +80,22 @@ async function submit() {
 
             <div class="mt-5">
 
+                <div class="flex gap-3 bg-primary/25 text-font-nogVita p-5 rounded-xl mb-8">
+                    <PhWarningCircle :size="24" class="shrink-0 font-semibold" />
+                    <div class="flex flex-col gap-3">
+                        <span class="font-semibold">Confirmação pendente</span>
+                        <p>
+                            Confirme seu e-mail antes de entrar. Enviamos um link para seu endereço de cadastrado.
+                        </p>
+                        <div class="flex justify-end">
+                            <button class="flex items-center gap-2 outline-none border-none font-semibold bg-white p-1 rounded-xl">
+                                <PhEnvelope :size="24" />
+                                Reenviar link de confirmação
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div v-if="error" class="flex items-center gap-2 rounded-lg bg-red-600/10 p-4 text-red-600 mb-7">
                     <PhWarningCircle :size="24" class="shrink-0" />
                     <span>{{ messageReq }}</span>
