@@ -13,6 +13,7 @@ const error = ref(false);
 const messageReq = ref("");
 const loading = ref(false);
 const fieldErrors = reactive<{ email?: string; password?: string }>({});
+const errorStatus = ref(0);
 
 function clearFieldError(field: 'email' | 'password') {
     delete fieldErrors[field];
@@ -50,6 +51,8 @@ async function submit() {
             messageReq.value =
                 erro.response?.data?.title ??
                 'Não foi possível realizar o login.';
+
+                errorStatus.value = erro.response?.data?.status
         } else {
             messageReq.value = 'Ocorreu um erro inesperado.';
         }
@@ -80,7 +83,7 @@ async function submit() {
 
             <div class="mt-5">
 
-                <div class="flex gap-3 bg-primary/25 text-font-nogVita p-5 rounded-xl mb-8">
+                <div v-if="errorStatus === 403" class="flex gap-3 bg-primary/25 text-font-nogVita p-5 rounded-xl mb-8">
                     <PhWarningCircle :size="24" class="shrink-0 font-semibold" />
                     <div class="flex flex-col gap-3">
                         <span class="font-semibold">Confirmação pendente</span>
