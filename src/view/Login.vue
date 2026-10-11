@@ -1,30 +1,61 @@
 <script setup lang="ts">
 import { api } from '@/api/client';
-import { ref } from 'vue';
-import { RouterLink } from 'vue-router';
+import { loginSchema } from '@/schemas/loginSchema';
+import { PhEnvelope, PhEye, PhEyeSlash, PhLock, PhSignIn, PhWarningCircle } from '@phosphor-icons/vue';
+import axios from 'axios';
+import { reactive, ref } from 'vue';
+
+const showPassword = ref(false);
 
 const email = ref("");
 const password = ref("");
-const loading = ref(false)
+const error = ref(false);
+const messageReq = ref("");
+const loading = ref(false);
+const fieldErrors = reactive<{ email?: string; password?: string }>({});
+
+function clearFieldError(field: 'email' | 'password') {
+    delete fieldErrors[field];
+}
 
 async function submit() {
-    loading.value = true;
+    error.value = false;
+    messageReq.value = '';
+    clearFieldError('email');
+    clearFieldError('password');
 
-    const data = {
+    const validation = loginSchema.safeParse({
         email: email.value,
         password: password.value
+    });
+
+    if (!validation.success) {
+        for (const issue of validation.error.issues) {
+            const field = issue.path[0];
+            if ((field === 'email' || field === 'password') && !fieldErrors[field]) {
+                fieldErrors[field] = issue.message;
+            }
+        }
+        return;
     }
 
-    try {
-        const response = await api.post("/api/v1/auth/login", data, {headers: {
-            "Content-type": "application/json"
-        }})
+    loading.value = true;
 
-        console.log(response)
-        loading.value = false;
-    } catch {
-        console.error("error");
-        loading.value = false;
+    try {
+        const response = await api.post("/api/v1/auth/login", validation.data)
+
+        console.log(response);
+    } catch (erro: any) {
+        if (axios.isAxiosError(erro)) {
+            messageReq.value =
+                erro.response?.data?.title ??
+                'Não foi possível realizar o login.';
+        } else {
+            messageReq.value = 'Ocorreu um erro inesperado.';
+        }
+
+        error.value = true;
+        console.error('Erro no login:', erro);
     } finally {
         loading.value = false;
     }
@@ -33,51 +64,90 @@ async function submit() {
 </script>
 
 <template>
-    <div class="md:flex h-screen">
-        <div class="w-[60%] md:flex items-center justify-center hidden">
-            <div>
-                <img src="../assets/logo.svg" alt="" srcset="">
-                <p>
-                    Nutrição conectada, cuidado personalizado, resultados reais.
-                </p>
-            </div>
-        </div>
-        <div class="md:bg-primary md:w-[40%] w-full h-full flex items-center justify-center">
-            <form @submit.prevent="submit" class="max-w-125 w-full m-5">
-                <div class="flex justify-between items-center">
-                    <span class="text-4xl font-bold text-primary md:text-terciary">Entrar</span>
-                    <img src="../assets/logo.svg" class="w-40 md:hidden">
+    <div class="flex justify-center h-screen">
+        <form @submit.prevent="submit" class="bg-white m-5 rounded-xl w-full form p-10">
+            <div class="flex items-center flex-col">
+                <img src="../assets/logo.svg" class="w-52">
+                <div class="text-center mt-3">
+                    <p class="text-[30px] font-bold text-tertiary mb-1">
+                        Bem-vindo(a) de volta ao NogVita
+                    </p>
+                    <p class="text-zinc-600">
+                        Acesse sua conta para continuar sua jornada de saúde e nutrição.
+                    </p>
                 </div>
-                <div class="w-full mt-7">
-                    <div class="w-full">
-                        <input 
-                            type="text" 
-                            placeholder="email" 
-                            class="w-full p-5 outline-none mb-5 rounded-xl md:border-none md:bg-white border border-primary"
-                            v-model="email"
-                        >
+            </div>
+
+            <div class="mt-5">
+
+                <div v-if="error" class="flex items-center gap-2 rounded-lg bg-red-600/10 p-4 text-red-600 mb-7">
+                    <PhWarningCircle :size="24" class="shrink-0" />
+                    <span>{{ messageReq }}</span>
+                </div>
+
+                <div class="flex flex-col w-full">
+                    <label for="login-email" class="font-bold">
+                        E-mail
+                    </label>
+                    <div class="relative">
+                        <PhEnvelope :size="24" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+
+                        <input id="login-email" v-model="email" type="email" autocomplete="email" placeholder="E-mail"
+                            class="w-full rounded-lg p-5 pl-14 outline-none" :aria-invalid="!!fieldErrors.email"
+                            aria-describedby="login-email-error" @input="clearFieldError('email')" />
                     </div>
-                    <div class="w-full">
-                        <input 
-                            type="password" 
-                            placeholder="senha" 
-                            class="w-full p-5 outline-none rounded-xl md:border-none md:bg-white border border-primary"
-                            v-model="password"
-                        >
+                    <p v-if="fieldErrors.email" id="login-email-error" class="mt-1 text-sm text-red-700">{{
+                        fieldErrors.email }}</p>
+                </div>
+                <div class="flex flex-col w-full mt-5">
+                    <label for="login-password" class="font-bold">
+                        Senha
+                    </label>
+                    <div class="relative">
+                        <PhLock :size="24" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+
+                        <input id="login-password" v-model="password" :type="showPassword ? 'text' : 'password'"
+                            autocomplete="current-password" placeholder="Senha"
+                            class="w-full rounded-lg p-5 pl-14 outline-none" :aria-invalid="!!fieldErrors.password"
+                            aria-describedby="login-password-error" @input="clearFieldError('password')">
+
+                        <div v-if="password.length > 0">
+                            <span @click="showPassword = true">
+                                <PhEye :size="24"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+                                    v-if="!showPassword" />
+                            </span>
+                            <span @click="showPassword = false">
+                                <PhEyeSlash :size="24"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+                                    v-if="showPassword" />
+                            </span>
+                        </div>
                     </div>
-                    <div class="flex justify-end mt-1 text-terciary">
-                        <RouterLink to="/" class="underline">
-                            Esqueci minha senha
-                        </RouterLink>
-                    </div>
-                    <button 
-                        :disabled="loading == true"
-                        class="mt-5 w-full bg-primary md:bg-secondary md:text-terciary p-5 rounded-xl text-2xl text-white"
-                    >
-                        Entrar
+                    <p v-if="fieldErrors.password" id="login-password-error" class="mt-1 text-sm text-red-700">{{
+                        fieldErrors.password }}</p>
+                    <span class="text-nogvita-primary flex justify-end mt-3">
+                        Esqueci minha senha
+                    </span>
+                </div>
+                <div class="w-full mt-5">
+                    <button type="submit" :disabled="loading"
+                        class="bg-primary flex items-center p-5 rounded-lg w-full justify-center text-white gap-3 disabled:cursor-wait disabled:opacity-60">
+                        <span>{{ loading ? 'Entrando...' : 'Entrar na plataforma' }}</span>
+                        <PhSignIn :size="24" />
                     </button>
                 </div>
-            </form>
-        </div>
+                <div class="text-center mt-10">
+                    Ainda não tem conta? <RouterLink to="/register" class="text-nogvita-primary">Criar conta de paciente
+                    </RouterLink>
+                </div>
+            </div>
+        </form>
     </div>
 </template>
+
+<style scoped>
+.form {
+    max-width: 600px;
+}
+</style>

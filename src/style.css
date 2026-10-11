@@ -3,5 +3,14 @@
 @theme {
     --color-primary: #F28C28;
     --color-secondary: #FFD08A;
-    --color-terciary: #1D2A24
+    --color-tertiary: #1D2A24;
+    --color-bg-nogVita: #FDF9F3;
+    --color-nogvita-primary: #914D00;
+    --color-nogvita-secondary: #554336;
+    --color-gray-nogVita: #F7F3ED;
+    --color-blue-nogVita: #D7E6DD
+}
+
+body {
+    background-color: var(--color-bg-nogVita);
 }
